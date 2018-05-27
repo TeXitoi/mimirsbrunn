@@ -51,6 +51,8 @@ extern crate slog;
 #[macro_use]
 extern crate slog_scope;
 
+extern crate actix_web;
+
 use iron::prelude::Chain;
 use iron::Iron;
 use rustless::Application;
@@ -64,15 +66,11 @@ extern crate prometheus;
 extern crate hyper;
 
 pub mod api;
+pub mod actix;
 mod model;
 mod params;
 pub mod query;
 use logger::Logger;
-
-lazy_static! {
-    static ref BRAGI_ES: String =
-        std::env::var("BRAGI_ES").unwrap_or_else(|_| "http://localhost:9200/munin".into());
-}
 
 #[derive(StructOpt, Debug)]
 pub struct Args {
@@ -80,7 +78,12 @@ pub struct Args {
     #[structopt(short = "b", long = "bind", default_value = "127.0.0.1:4000")]
     bind: String,
     /// Elasticsearch parameters, override BRAGI_ES environment variable.
-    #[structopt(short = "c", long = "connection-string", raw(default_value = "&BRAGI_ES"))]
+    #[structopt(
+        short = "c",
+        long = "connection-string",
+        default_value = "http://localhost:9200/munin",
+        env = "BRAGI_ES"
+    )]
     connection_string: String,
 }
 
