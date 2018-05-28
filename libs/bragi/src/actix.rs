@@ -1,4 +1,4 @@
-use actix_web::{http, server, App, Query, Result, Json, HttpRequest, FromRequest};
+use actix_web::{http, server, App, Query, State, Result, Json};
 use model;
 use query;
 use structopt::StructOpt;
@@ -11,8 +11,7 @@ struct Params {
     q: String,
 }
 
-fn autocomplete(req: HttpRequest<Arc<::Args>>) -> Result<Json<model::v1::AutocompleteResponse>> {
-    let params = <Query<Params>>::extract(&req)?;
+fn autocomplete(params: Query<Params>, state: State<Arc<::Args>>) -> Result<Json<model::v1::AutocompleteResponse>> {
     let res = query::autocomplete(
         &params.q,
         &[],
@@ -20,7 +19,7 @@ fn autocomplete(req: HttpRequest<Arc<::Args>>) -> Result<Json<model::v1::Autocom
         0,
         10,
         None,
-        &req.state().connection_string,
+        &state.connection_string,
         None,
         &[]
     );
@@ -33,7 +32,7 @@ pub fn runserver() {
     server::new(
         move || {
             App::with_state(args_move.clone())
-                .route("/v1/autocomplete", http::Method::GET, autocomplete)
+                .resource("/v1/autocomplete", |r| r.method(http::Method::GET).with2(autocomplete))
         })
         .bind(&args.bind)
         .unwrap()
