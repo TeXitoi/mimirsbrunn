@@ -1,8 +1,8 @@
-use actix_web::{http, server, App, Query, State, Result, Json};
+use actix_web::{http, server, App, Json, Query, Result, State};
 use model;
 use query;
-use structopt::StructOpt;
 use std::sync::Arc;
+use structopt::StructOpt;
 
 // TODO: pretty errors, async es
 
@@ -11,7 +11,10 @@ struct Params {
     q: String,
 }
 
-fn autocomplete(params: Query<Params>, state: State<Arc<::Args>>) -> Result<Json<model::v1::AutocompleteResponse>> {
+fn autocomplete(
+    params: Query<Params>,
+    state: State<Arc<::Args>>,
+) -> Result<Json<model::v1::AutocompleteResponse>> {
     let res = query::autocomplete(
         &params.q,
         &[],
@@ -21,7 +24,7 @@ fn autocomplete(params: Query<Params>, state: State<Arc<::Args>>) -> Result<Json
         None,
         &state.connection_string,
         None,
-        &[]
+        &[],
     );
     Ok(Json(res.into()))
 }
@@ -29,12 +32,11 @@ fn autocomplete(params: Query<Params>, state: State<Arc<::Args>>) -> Result<Json
 pub fn runserver() {
     let args = Arc::new(::Args::from_args());
     let args_move = args.clone();
-    server::new(
-        move || {
-            App::with_state(args_move.clone())
-                .resource("/v1/autocomplete", |r| r.method(http::Method::GET).with2(autocomplete))
+    server::new(move || {
+        App::with_state(args_move.clone()).resource("/v1/autocomplete", |r| {
+            r.method(http::Method::GET).with2(autocomplete)
         })
-        .bind(&args.bind)
+    }).bind(&args.bind)
         .unwrap()
         .run();
 }

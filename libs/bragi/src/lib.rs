@@ -65,8 +65,8 @@ extern crate prometheus;
 
 extern crate hyper;
 
-pub mod api;
 pub mod actix;
+pub mod api;
 mod model;
 mod params;
 pub mod query;
