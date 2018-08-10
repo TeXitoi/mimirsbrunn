@@ -9,15 +9,18 @@ use structopt::StructOpt;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Params {
     q: String,
+    #[serde(rename = "pt_dataset[]", default)]
+    pt_datasets: Vec<String>,
 }
 
 fn autocomplete(
     params: Query<Params>,
     state: State<Arc<::Args>>,
 ) -> Result<Json<model::v1::AutocompleteResponse>> {
+    println!("{:?}", *params);
     let res = query::autocomplete(
         &params.q,
-        &[],
+        &params.pt_datasets.iter().map(String::as_str).collect::<Vec<_>>(),
         true,
         0,
         10,
