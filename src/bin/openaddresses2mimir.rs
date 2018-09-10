@@ -50,6 +50,7 @@ use std::cell::Cell;
 use std::fs;
 use std::path::PathBuf;
 use par_map::ParMap;
+use std::sync::Arc;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -67,7 +68,7 @@ pub struct OpenAddresse {
 }
 
 impl OpenAddresse {
-    pub fn into_addr(self, admins_geofinder: &AdminGeoFinder) -> mimir::Addr {
+    pub fn into_addr(self, admins_geofinder: Arc<AdminGeoFinder>) -> mimir::Addr {
         let street_name = format!("{} ({})", self.street, self.city);
         let addr_name = format!("{} {}", self.number, self.street);
         let addr_label = format!("{} ({})", addr_name, self.city);
@@ -102,7 +103,7 @@ impl OpenAddresse {
     }
 }
 
-fn index_file(f: std::path::PathBuf, rubber: &mut Rubber, addr_index: &TypedIndex<mimir::Addr>, a: &'static AdminGeoFinder) -> Result<(), mimirsbrunn::Error> {
+fn index_file(f: std::path::PathBuf, rubber: &mut Rubber, addr_index: &TypedIndex<mimir::Addr>, a: Arc<AdminGeoFinder>) -> Result<(), mimirsbrunn::Error> {
     info!("importing {:?}...", &f);
     let mut rdr = csv::ReaderBuilder::new().has_headers(true).from_path(&f)?;
     let iter = rdr
@@ -113,7 +114,7 @@ fn index_file(f: std::path::PathBuf, rubber: &mut Rubber, addr_index: &TypedInde
         })
         .with_nb_threads(8)
         .par_map({
-            move |v: OpenAddresse| v.into_addr(a)
+            move |v: OpenAddresse| v.into_addr(a.clone())
         })
         .filter(|a| {
             !a.street.street_name.is_empty() || {
@@ -144,13 +145,13 @@ where
             );
             vec![]
         });
-    let admins_geofinder = admins.into_iter().collect();
+    let admins_geofinder: Arc<AdminGeoFinder> = Arc::new(admins.into_iter().collect());
     let addr_index = rubber
         .make_index(dataset)
         .with_context(|_| format!("error occureed when making index for {}", dataset))?;
     info!("Add data in elasticsearch db.");
     for f in files {
-        index_file(f, &mut rubber, &addr_index, &admins_geofinder)?;
+        index_file(f, &mut rubber, &addr_index, admins_geofinder.clone())?;
     }
     rubber.publish_index(dataset, addr_index)
 }
