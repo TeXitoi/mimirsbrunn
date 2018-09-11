@@ -161,15 +161,19 @@ where
     let iter = files.into_iter()
         .flat_map(|f| {
             info!("importing {:?}...", &f);
-            let mut rdr = csv::ReaderBuilder::new().has_headers(false).from_path(&f).unwrap();
-        
-            rdr
-                .deserialize()
-                .filter_map(|r| {
-                    r.map_err(|e| info!("impossible to read line, error: {}", e))
-                        .ok()
-                })
-                .collect::<Vec<_>>()
+            csv::ReaderBuilder::new()
+                .has_headers(false)
+                .from_path(&f)
+                .map_err(|e| error!("impossible to read file {:?}, error: {}", f, e))
+                .ok()
+                .into_iter()
+                .flat_map(|rdr| rdr
+                          .into_deserialize()
+                          .filter_map(|r| {
+                              r.map_err(|e| info!("impossible to read line, error: {}", e))
+                                  .ok()
+                          })
+                )
         })
         .with_nb_threads(8)
         .par_map(move |b: Bano| b.into_addr(&admins_by_insee, &admins_geofinder))
