@@ -79,8 +79,8 @@ impl Bano {
     }
     pub fn into_addr(
         self,
-        admins_from_insee: Arc<AdminFromInsee>,
-        admins_geofinder: Arc<AdminGeoFinder>,
+        admins_from_insee: &AdminFromInsee,
+        admins_geofinder: &AdminGeoFinder,
     ) -> mimir::Addr {
         let street_name = format!("{} ({})", self.street, self.city);
         let addr_name = format!("{} {}", self.nb, self.street);
@@ -144,7 +144,7 @@ where
             vec![]
         });
     let admins_geofinder: Arc<AdminGeoFinder> = Arc::new(admins.iter().cloned().collect());
-    let admins_by_insee: Arc<AdminFromInsee>  = Arc::new(admins
+    let admins_by_insee: Arc<AdminFromInsee> = Arc::new(admins
         .into_iter()
         .filter(|a| !a.insee.is_empty())
         .map(|mut a| {
@@ -171,7 +171,7 @@ where
             .par_map({
                 let adm_by_insee = admins_by_insee.clone();
                 let adm_geofinder = admins_geofinder.clone();
-                move |b: Bano| b.into_addr(adm_by_insee.clone(), adm_geofinder.clone())
+                move |b: Bano| b.into_addr(&adm_by_insee, &adm_geofinder)
             })
             .filter(|a| {
                 !a.street.street_name.is_empty() || {

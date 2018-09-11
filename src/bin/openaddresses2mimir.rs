@@ -68,7 +68,7 @@ pub struct OpenAddresse {
 }
 
 impl OpenAddresse {
-    pub fn into_addr(self, admins_geofinder: Arc<AdminGeoFinder>) -> mimir::Addr {
+    pub fn into_addr(self, admins_geofinder: &AdminGeoFinder) -> mimir::Addr {
         let street_name = format!("{} ({})", self.street, self.city);
         let addr_name = format!("{} {}", self.number, self.street);
         let addr_label = format!("{} ({})", addr_name, self.city);
@@ -114,7 +114,7 @@ fn index_file(f: std::path::PathBuf, rubber: &mut Rubber, addr_index: &TypedInde
         })
         .with_nb_threads(8)
         .par_map({
-            move |v: OpenAddresse| v.into_addr(a.clone())
+            move |v: OpenAddresse| v.into_addr(&a)
         })
         .filter(|a| {
             !a.street.street_name.is_empty() || {
