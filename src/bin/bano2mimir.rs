@@ -160,6 +160,8 @@ where
     for f in files {
         info!("importing {:?}...", &f);
         let mut rdr = csv::ReaderBuilder::new().has_headers(false).from_path(&f)?;
+        let admins_geofinder = admins_geofinder.clone();
+        let admins_by_insee = admins_by_insee.clone();
         
         let iter = rdr
             .deserialize()
@@ -168,11 +170,7 @@ where
                     .ok()
             })
             .with_nb_threads(8)
-            .par_map({
-                let adm_by_insee = admins_by_insee.clone();
-                let adm_geofinder = admins_geofinder.clone();
-                move |b: Bano| b.into_addr(&adm_by_insee, &adm_geofinder)
-            })
+            .par_map(move |b: Bano| b.into_addr(&admins_by_insee, &admins_geofinder))
             .filter(|a| {
                 !a.street.street_name.is_empty() || {
                     debug!("Address {} has no street name and has been ignored.", a.id);
